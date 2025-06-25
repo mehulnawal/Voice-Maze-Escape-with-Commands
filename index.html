@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Maze</title>
+    <style>
+        body {
+            background-color: #111827;
+            color: #fff;
+            font-family: sans-serif;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        canvas {
+            border: 2px solid cyan;
+            margin: 1rem 0;
+        }
+
+        .voice-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 10px;
+            background: red;
+        }
+
+        .voice-indicator.active {
+            background: lime;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎤 Voice Maze Game</h1>
+    <p>Say: <strong>left</strong>, <strong>right</strong>, <strong>up</strong>, <strong>down</strong></p>
+    <p>Status: <span id="status">Idle</span><span class="voice-indicator" id="indicator"></span></p>
+    <button id="startBtn">Start Voice Control</button>
+
+    <canvas id="mazeCanvas" width="600" height="420"></canvas>
+
+    <script>
+        const canvas = document.getElementById('mazeCanvas');
+        const ctx = canvas.getContext('2d');
+        const cellSize = 30;
+        let player = { x: 1, y: 1 };
+
+        const maze = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+            [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0],
+            [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ];
+
+        function drawMaze() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let y = 0; y < maze.length; y++) {
+                for (let x = 0; x < maze[y].length; x++) {
+                    const value = maze[y][x];
+                    if (value === 0) {
+                        ctx.fillStyle = '#222';
+                    } else if (value === 1) {
+                        ctx.fillStyle = '#444';
+                    } else if (value === 2) {
+                        ctx.fillStyle = 'lime';
+                    }
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+
+            // Draw player
+            ctx.fillStyle = 'cyan';
+            ctx.beginPath();
+            ctx.arc(
+                player.x * cellSize + cellSize / 2,
+                player.y * cellSize + cellSize / 2,
+                cellSize / 3,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        function movePlayer(dir) {
+            const moves = {
+                left: [-1, 0],
+                right: [1, 0],
+                up: [0, -1],
+                down: [0, 1]
+            };
+
+            if (!moves[dir]) return;
+            const [dx, dy] = moves[dir];
+            const newX = player.x + dx;
+            const newY = player.y + dy;
+
+            if (maze[newY] && maze[newY][newX] !== 0) {
+                player.x = newX;
+                player.y = newY;
+                drawMaze();
+
+                if (maze[newY][newX] === 2) {
+                    alert('🎉 You escaped the maze!');
+                }
+            }
+        }
+
+        // Voice Recognition Setup
+        const status = document.getElementById('status');
+        const indicator = document.getElementById('indicator');
+        const startBtn = document.getElementById('startBtn');
+
+        let recognition;
+        let listening = false;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                status.textContent = 'Listening...';
+                indicator.classList.add('active');
+                listening = true;
+            };
+
+            recognition.onresult = (event) => {
+                const command = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+                status.textContent = `Heard: "${command}"`;
+                ['left', 'right', 'up', 'down'].forEach(dir => {
+                    if (command.includes(dir)) movePlayer(dir);
+                });
+            };
+
+            recognition.onerror = (e) => {
+                status.textContent = `Error: ${e.error}`;
+                indicator.classList.remove('active');
+                listening = false;
+            };
+
+            recognition.onend = () => {
+                if (listening) recognition.start(); // auto-restart
+            };
+
+            startBtn.onclick = () => {
+                if (!listening) {
+                    recognition.start();
+                }
+            };
+        } else {
+            status.textContent = 'Voice recognition not supported.';
+            startBtn.disabled = true;
+        }
+
+        drawMaze();
+    </script>
+</body>
+
+</html>
