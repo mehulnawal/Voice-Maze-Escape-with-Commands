@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Test</title>
+</head>
+
+<body style="font-family: sans-serif; text-align: center; padding: 50px;">
+    <h1>🎤 Voice Command Test</h1>
+    <p id="status">Click the button and say: <strong>left, right, up, down, stop</strong></p>
+    <button id="startBtn" style="padding: 1rem 2rem; font-size: 1.2rem;">Start Listening</button>
+    <p>Heard: <span id="command">...</span></p>
+
+    <script>
+        const btn = document.getElementById("startBtn");
+        const status = document.getElementById("status");
+        const command = document.getElementById("command");
+
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                status.textContent = "🎤 Listening... Speak now!";
+            };
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript.toLowerCase().trim();
+                command.textContent = text;
+                status.textContent = "✅ Got it! Click again to try more.";
+            };
+
+            recognition.onerror = (e) => {
+                status.textContent = "❌ Error: " + e.error;
+            };
+
+            recognition.onend = () => {
+                status.textContent += " (Ended)";
+            };
+
+            btn.onclick = () => {
+                recognition.start();
+            };
+        } else {
+            status.textContent = "❌ Speech recognition not supported in this browser.";
+            btn.disabled = true;
+        }
+    </script>
+</body>
+
+</html>
